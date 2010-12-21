@@ -1,5 +1,8 @@
 # Design Notes
 
+## Thoughts
+
+* OAuth2 is not a pure HTTP protocol. It uses regular redirects (i.e. 3xx) in case of errors).
 ## OAuth Proxy
 
 This is a forward proxy deployed between OAuth clients and OAuth servers.
