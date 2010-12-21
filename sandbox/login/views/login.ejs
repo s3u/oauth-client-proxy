@@ -1,0 +1,22 @@
+<%= message %>
+
+<form action="/login" method="POST" enctype="application/x-www-form-urlencoded">
+  <input name=".rt" type="hidden" value="<%= _rt%>"/>
+  <input name=".sign" type="hidden" value="<%= _sign%>"/>
+  <fieldset>
+    <legend>Login to login.example.org</legend>
+    <ul style="list-style:none">
+      <li>
+        <label for="name">User ID</label>
+        <input name="user" type="text" placeholder="Name" required="true" autofocus="true"/>
+      </li>
+      <li>
+        <label>Password?</label>
+        <input name="password" type="password" maxlength="100" required="true"/>
+      </li>
+      <li>
+        <input type="submit" value="Login"/>
+      </li>
+    </ul>
+  </fieldset>
+</form>
