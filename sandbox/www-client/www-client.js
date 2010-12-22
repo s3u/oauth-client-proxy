@@ -3,7 +3,7 @@ var connect = require('connect'),
   express = require('express'),
   sys = require('sys'),
   http = require('http'),
-  client = require('../utils/client'),
+  client = require('../../lib/client'),
   querystring = require('querystring'),
   nstore = require('nstore');
 
@@ -28,8 +28,8 @@ function manageClients(app) {
 
       client.request({
         method: 'GET',
-        uri: 'https://localhost:5000/resource',
-        proxy: 'http://localhost:3000',
+        uri: 'http://localhost:5000/resource',
+        proxy: 'http://localhost:3030',
         clientError: function(clientRes) {
           sys.log("ERROR");
         },

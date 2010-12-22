@@ -20,7 +20,6 @@ function resourceServer(app) {
       };
       res.writeHead(200, {
         'Content-Type' : 'application/json',
-//        'Transfer-Encoding' : 'chunked'
         'Connection' : 'close'
       });
       res.end(JSON.stringify(resource));
