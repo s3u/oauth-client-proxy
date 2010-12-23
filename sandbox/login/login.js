@@ -2,7 +2,8 @@ var connect = require('connect'),
   resource = require('resource-router'),
   express = require('express'),
   sys = require('sys'),
-  nstore = require('nstore');
+  cryptUtils = require('../../lib/crypt-utils'),
+  nstore = require('nstore')
 
 var users = {
   'john' : {
@@ -16,41 +17,44 @@ var users = {
     lastName: 'Doe',
     password: 'jane.doe'
   }
-};
+}
 
 function loginServer(app) {
   app.resource('/login', {
     // Login page
     get: function(req, res) {
-      // Verify that the signature matches
-      var returnTo = req.param('.rt');
-      var sign = req.param('.sign');
-
-      // TODO: Verify that the signature matches
-      var doMatch = true;
+      // verify that the signature matches
+      var returnTo = req.param('.rt')
+      var sign = req.param('.sign')
+      sys.log('returnTo: ' + returnTo)
+      sys.log('sign: ' + sign)
+      var doMatch = cryptUtils.verifyHmac(returnTo, 'this is my secret', sign)
 
       if (returnTo && sign && doMatch) {
         // Render login page
         res.render('login.ejs', {
           'message' : '',
-          '_rt' : req.param('.rt'),
-          '_sign' : req.param('.sign')
-        });
+          '_rt' : returnTo,
+          '_sign' : sign
+        })
       }
       else {
-        res.writeHead(400);
+        res.writeHead(400)
         res.render('err.ejs', {
           message: 'You did something wrong. Don\'t retry!'
-        });
+        })
       }
     },
 
     // Login
     post: function(req, res) {
-      var returnTo = req.param('.rt');
-      var sign = req.param('.sign');
-      var userid = req.param('user');
-      var password = req.param('password');
+      var returnTo = req.param('.rt')
+      var sign = req.param('.sign')
+      sys.log('returnTo: ' + returnTo)
+      sys.log('sign: ' + sign)
+
+      var userid = req.param('user')
+      var password = req.param('password')
 
       if (!userid || !password) {
         res.render('login.ejs', {
@@ -58,22 +62,24 @@ function loginServer(app) {
           _rt: req.param('.rt'),
           _sign: req.param('.sign'),
           warning: 'Missing user ID or password'
-        });
-        return;
+        })
+        return
       }
-      // TODO: Verify again that the signature matches
-      var doMatch = true;
+      // Verify again that the signature matches
+      var doMatch = cryptUtils.verifyHmac(returnTo, 'this is my secret', sign)
+
+      returnTo = decodeURIComponent(returnTo)
+      sys.log('returnTo - url decoded: ' + returnTo)
 
       if (returnTo && sign && doMatch) {
-        var user = users[userid];
+        var user = users[userid]
         if (user && password == user.password) {
           // Redirect
-          sys.log('Redirecting to ' + returnTo);
+          sys.log('redirecting the user to authorization server ' + returnTo)
           res.writeHead(302, {
             'Location' : returnTo
-          });
-          sys.log('Ending ...');
-          res.end();
+          })
+          res.end()
         }
         else {
           // Render login page
@@ -81,21 +87,21 @@ function loginServer(app) {
             'message' : 'User ID and password do not match',
             '_rt' : req.param('.rt'),
             '_sign' : req.param('.sign')
-          });
+          })
         }
       }
       else {
-        res.writeHead(400);
+        res.writeHead(400)
         res.render('err.ejs', {
           message: 'You did something wrong. Don\'t retry!'
-        });
+        })
       }
     }
-  });
+  })
 }
 
-var server = express.createServer();
-server.use(express.bodyDecoder());
-server.use(resource(loginServer));
-server.listen(3002);
-console.log('Login server listening on port 3002');
+var server = express.createServer()
+server.use(express.bodyDecoder())
+server.use(resource(loginServer))
+server.listen(4999)
+console.log('Login server listening on port 4999')

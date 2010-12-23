@@ -1,8 +1,8 @@
 
 exports.config = {
-  consentUri : 'http://localhost:3000/consent',
+  consentUri : 'http://localhost:4998/consent',
   login : {
-    uri: 'http://localhost:3002/login',
+    uri: 'http://localhost:4999/login',
     secret: 'I am a shared secret'
   }
 };

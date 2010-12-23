@@ -15,6 +15,14 @@ module.exports = {
     assert.equal(decrypted, plain)
   },
 
+  'test crypt-large': function() {
+    var plain = 'Hello world this is a long world. Yes it is.'
+    var secret = 'This is a secret. Keep it secret :)'
+    var encrypted = cryptUtils.encryptThis(plain, secret)
+    var decrypted = cryptUtils.decryptThis(encrypted, secret)
+    assert.equal(decrypted, plain)
+  },
+
   'test hmac': function() {
     var plain = 'Hello world'
     var secret = 'This is a secret. Keep it secret :)'

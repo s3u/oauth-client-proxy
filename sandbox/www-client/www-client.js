@@ -42,6 +42,13 @@ function manageClients(app) {
           sys.log("ERROR")
           res.end()
         },
+        '302' : function(clientRes) {
+          // got redirected here since the user has not authorized me
+          res.writeHead(302, {
+            'Location' : clientRes.headers.location
+          })
+          res.end();
+        },
         success: function(clientRes) {
           sys.log("SUCCESS")
           var data = ''
