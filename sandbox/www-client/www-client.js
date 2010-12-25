@@ -6,7 +6,8 @@ var connect = require('connect'),
   client = require('../../lib/client'),
   querystring = require('querystring'),
   nstore = require('nstore'),
-  cryptUtils = require('../../lib/crypt-utils')
+  cryptUtils = require('../../lib/crypt-utils'),
+  uriParmAppender = require('../../lib/uri-param-appender')
 
 function manageClients(app) {
 
@@ -17,14 +18,20 @@ function manageClients(app) {
     }
   })
 
-  app.resource('/getsomedata', {
+  app.resource('/home', {
+    // Render the start page
+    get: function(req, res) {
+      res.render('home.ejs')
+    }
+  })
 
+  app.resource('/home/my', {
     get: function(req, res) {
       // Auth uri: http://localhost:4000/oauth/authorize?client_id=124518964277647&amp;scope=email
       // redirect uri:
       // resource uri: http://localhost:5000/resource
 
-      // create a Proxy-Authorization header using my own aes256sha1
+      // Create a Proxy-Authorization header using my own aes256sha1
       var data = req.remoteUser // came from basicAuth module
       var encrypted = cryptUtils.encryptThis(data, 'this is a secret')
       var hmac = cryptUtils.hmacThis(encrypted, 'this is a secret')
@@ -44,24 +51,46 @@ function manageClients(app) {
         },
         '302' : function(clientRes) {
           // got redirected here since the user has not authorized me
-          res.writeHead(302, {
-            'Location' : clientRes.headers.location
+          // here we should tell the user before redirectling bluntly
+
+          // continueTo is where the user will be sent to for authorization - this is the location told by the proxy
+          var continueTo = clientRes.headers.location
+
+          // this is the URI that we want to retry after authorization
+          var redirectUri = encodeURIComponent('http://localhost:4000/home/my')
+
+          continueTo = uriParmAppender.appendParam(continueTo, {
+            'redirect_uri' : redirectUri
           })
-          res.end();
+          continueTo = encodeURIComponent(continueTo)
+
+          // Render the user alert page
+          res.render('authorize.ejs', {
+            continueTo : continueTo
+          })
+          res.end()
         },
         success: function(clientRes) {
-          sys.log("SUCCESS")
           var data = ''
           clientRes.on('data', function(chunk) {
             data += chunk
           })
           clientRes.on('end', function() {
             data = JSON.parse(data)
-            res.render('gotsomedata.ejs', data)
+            res.render('home/my.ejs', data)
             res.end()
           })
         }
       })
+    }
+  })
+
+  app.resource('/authorize', {
+    get: function(req, res) {
+      res.writeHead(302, {
+        'Location' : req.param('continueTo')
+      })
+      res.end();
     }
   })
 }
