@@ -10,8 +10,8 @@ resource: "Resource Server"
 ua:>client.Access resource
 client:>client-proxy.Access resource
 client-proxy:client-proxy.Check access token
+client-proxy:>client-proxy.Generate U2 to include the request URI U3\\nof the client - BUT WE DON'T KNOW IT! 
 client-proxy:>client.302 to OAuth Server\\nU1={authuri}?client_id=xxx&redirect_uri=U2
-
 
 client:>ua.Alert the user about redirect
 ua:>client.Proceed
@@ -27,7 +27,15 @@ login:>ua.Redirect to the auth server
 ua:>auth.Authorize
 auth:>ua.Authorize the user, generate the code\\nand redirect the user to U2
 
-ua:>client-proxy.U2 (to continue the access flow)]]></source>
+ua:>client-proxy.U2 (to continue the access flow)
+
+client-proxy:>auth.Request for access token
+auth:>client-proxy.Issue access token
+client-proxy:client-proxy>Store the access token for the user
+client-proxy:client-proxy>Retrieve the U3 from U2
+client-proxy:>ua.Redirect to U3
+
+ua:>client.U3 to continue the flow]]></source>
 <configuration>
 <property name="actorWidth" value="25"/>
 <property name="allowMessageProperties" value="false"/>
@@ -76,6 +84,6 @@ ua:>client-proxy.U2 (to continue the access flow)]]></source>
 <property name="threadNumbersVisible" value="false"/>
 <property name="threaded" value="true"/>
 <property name="upperMargin" value="5"/>
-<property name="verticallySplit" value="true"/>
+<property name="verticallySplit" value="false"/>
 </configuration>
 </diagram>
