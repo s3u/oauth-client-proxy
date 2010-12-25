@@ -43,7 +43,7 @@ function main(app) {
       var state = req.param('state')
 
       // 1. Load the client config by ID
-      if (clients[clientId]) {
+      if(clients[clientId]) {
         // Found and retrieved the client - try to authorize the client
         // We need to first let the user login
         // Then show the permission screen to the user for the scopes
@@ -120,13 +120,13 @@ function main(app) {
       // Mint a code
       var code = Math.round(Math.random(10) * Math.pow(10, 10)) // TODO: Better code
 
-
       // Redirect back to the client
       var redirect_uri = decodeURIComponent(loginState.redirect_uri)
 
       sys.log('>>>>>> ' + redirect_uri)
       redirect_uri = uriParamAppender.appendParam(redirect_uri, {
-        'code' : code
+        'code' : code,
+        'state' : loginState.state
       })
       res.writeHead(302, {
         'Location' : redirect_uri
@@ -134,10 +134,28 @@ function main(app) {
       res.end()
     }
   })
+
+  app.resource('/token', {
+    post: function(req, res) {
+      // TODO
+
+      // For now return dummy tokens
+      var body = {
+        "access_token":"SlAV32hkKG",
+        "token_type":"example",
+        "expires_in":3600,
+        "refresh_token":"8xLOxBtZp8"
+      }
+      res.writeHead(200, {
+        'Content-Type' : 'application/json'
+      })
+      res.end(JSON.stringify(body))
+    }
+  })
 }
 
 function handleError(obj) {
-  if (obj.redirectUri) {
+  if(obj.redirectUri) {
     var dest = uriParamAppender.appendParam(obj.redirectUri, {
       'error' : 'invalid_client',
       'error_description' : encodeURIComponent('Invalid client_id'),
