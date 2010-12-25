@@ -62,11 +62,8 @@ function main(app) {
         }
         loginState = JSON.stringify(loginState)
 
-        sys.log('loginState: ' + loginState)
-
         // Encrypt the loginState
         var _state = cryptUtils.encryptThis(loginState, 'this is my secret')
-        sys.log('_state: ' + _state)
 
         // Create the redirect URI
         var consent = uriParamAppender.appendParam(config.config.consentUri, {
@@ -74,17 +71,14 @@ function main(app) {
         })
 
         consent = encodeURIComponent(consent);
-        sys.log('redirectUri: ' + consent)
 
         // sign the uri
         var sign = cryptUtils.hmacThis(consent, 'this is my secret')
-        sys.log('sign: ' + sign);
         loginUri = uriParamAppender.appendParam(loginUri, {
           '.rt' : consent,
           '.sign' : sign
         })
 
-        sys.log('sending the user to - ' + loginUri)
         res.writeHead(302, {
           'Location' : loginUri
         })
@@ -107,12 +101,9 @@ function main(app) {
     get: function(req, res) {
       // get the state
       var _loginState = req.param('.st');
-      sys.log('_loginState: ' + _loginState);
 
       var loginState = cryptUtils.decryptThis(_loginState, 'this is my secret')
-      sys.log('loginState ' + loginState)
       loginState = JSON.parse(loginState);
-      sys.log(sys.inspect(loginState));
 
       // TODO: Need to get params passed from /authorize to here via the login server
       // also need to know the redirect URI
@@ -123,7 +114,6 @@ function main(app) {
       // Redirect back to the client
       var redirect_uri = decodeURIComponent(loginState.redirect_uri)
 
-      sys.log('>>>>>> ' + redirect_uri)
       redirect_uri = uriParamAppender.appendParam(redirect_uri, {
         'code' : code,
         'state' : loginState.state

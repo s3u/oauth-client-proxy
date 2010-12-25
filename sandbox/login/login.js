@@ -50,8 +50,6 @@ function loginServer(app) {
     post: function(req, res) {
       var returnTo = req.param('.rt')
       var sign = req.param('.sign')
-      sys.log('returnTo: ' + returnTo)
-      sys.log('sign: ' + sign)
 
       var userid = req.param('user')
       var password = req.param('password')
@@ -69,13 +67,11 @@ function loginServer(app) {
       var doMatch = cryptUtils.verifyHmac(returnTo, 'this is my secret', sign)
 
       returnTo = decodeURIComponent(returnTo)
-      sys.log('returnTo - url decoded: ' + returnTo)
 
       if (returnTo && sign && doMatch) {
         var user = users[userid]
         if (user && password == user.password) {
           // Redirect
-          sys.log('redirecting the user to authorization server ' + returnTo)
           res.writeHead(302, {
             'Location' : returnTo
           })

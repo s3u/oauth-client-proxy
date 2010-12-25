@@ -56,13 +56,11 @@ function manageClients(app) {
 
           // continueTo is where the user will be sent to for authorization - this is the location told by the proxy
           var continueTo = clientRes.headers.location
-          sys.log('continueTo: ' + continueTo)
 
           // Replace orig_uri in the redirect_uri parameter - since it is param, we need to encode the token
           // this is the URI that we want to retry after authorization
           var orig = encodeURIComponent('http://localhost:4000/home/my')
           continueTo = continueTo.replace(encodeURIComponent('{orig_uri}'), orig)
-          sys.log('continueTo after replacement: ' + continueTo)
 
           // Encode since this value will be used in a link
           continueTo = encodeURIComponent(continueTo)

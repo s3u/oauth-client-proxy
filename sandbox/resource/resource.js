@@ -12,8 +12,6 @@ function resourceServer(app) {
     get: function(req, res) {
       // TODO: Check the authorization header
 
-      sys.log("Got request");
-
       var resource = {
         name: 'Subbu',
         text: 'Hi there'
@@ -23,7 +21,6 @@ function resourceServer(app) {
         'Connection' : 'close'
       });
       res.end(JSON.stringify(resource));
-      sys.log("Done response");
     }
   });
 }
