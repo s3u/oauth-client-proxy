@@ -29,16 +29,8 @@ function manageClients(app) {
 
   app.resource('/home/my', {
     get: function(req, res) {
-      // Auth uri: http://localhost:4000/oauth/authorize?client_id=124518964277647&amp;scope=email
-      // redirect uri:
-      // resource uri: http://localhost:5000/resource
-
-      // Create a Proxy-Authorization header using my own aes256sha1
-      var data = req.remoteUser // came from basicAuth module
-      var encrypted = cryptUtils.encryptThis(data, 'this is a secret')
-      var hmac = cryptUtils.hmacThis(encrypted, 'this is a secret')
-      var authorization = 'aes256sha1 ' + encrypted + ':' + hmac
-
+      // Create a Proxy-Authorization header using the oauth2-proxy-assert scheme
+      var authorization = 'oauth2-proxy-assert ' + req.remoteUser
       // Encode the request URI to retry in case of failure
       var origUriLink = headers.format('Link', {
         href : 'http://localhost:4000/home/my',
@@ -101,8 +93,6 @@ var users = {
   'user1' : 'password',
   'user2' : 'password'
 }
-
-
 
 var server = express.createServer()
 

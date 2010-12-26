@@ -26,9 +26,9 @@ function resourceServer(app) {
 }
 
 
-var privateKey = fs.readFileSync('privatekey.pem').toString();
-var certificate = fs.readFileSync('certificate.pem').toString();
-var credentials = crypto.createCredentials({key: privateKey, cert: certificate});
+//var privateKey = fs.readFileSync('privatekey.pem').toString();
+//var certificate = fs.readFileSync('certificate.pem').toString();
+//var credentials = crypto.createCredentials({key: privateKey, cert: certificate});
 
 var server = express.createServer();
 //server.setSecure(credentials);

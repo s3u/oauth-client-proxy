@@ -1,10 +1,12 @@
+
+// This module contains the origin registry.
+
 var origins = [
   {
     pattern : /^http\:\/\/localhost\:5000\/resource/,
     authorizeUri : 'http://localhost:4998/authorize',
     tokenUri : 'http://localhost:4998/token',
     clientId : '71746698906',
-    secret: 'I am a shared secret'
   }
 ]
 
