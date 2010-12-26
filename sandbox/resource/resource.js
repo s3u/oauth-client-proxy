@@ -34,6 +34,6 @@ var server = express.createServer();
 //server.setSecure(credentials);
 server.use(express.bodyDecoder());
 server.use(resource(resourceServer));
-server.listen(5000);
-console.log('Resource server running on port 5000');
+server.listen(6000);
+console.log('Resource server running on port 6000');
 

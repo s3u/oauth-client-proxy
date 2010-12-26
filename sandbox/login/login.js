@@ -99,5 +99,5 @@ function loginServer(app) {
 var server = express.createServer()
 server.use(express.bodyDecoder())
 server.use(resource(loginServer))
-server.listen(4999)
-console.log('Login server listening on port 4999')
+server.listen(4998)
+console.log('Login server listening on port 4998')

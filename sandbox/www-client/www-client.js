@@ -50,6 +50,10 @@ function manageClients(app) {
           sys.log("ERROR")
           res.end()
         },
+        '401' : function(clientRes) {
+          res.writeHead(401)
+          res.end('Server says you are not authorized!')
+        },
         '302' : function(clientRes) {
           // got redirected here since the user has not authorized me
           // here we should tell the user before redirectling bluntly

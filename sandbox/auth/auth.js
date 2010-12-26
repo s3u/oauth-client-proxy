@@ -162,5 +162,33 @@ function handleError(obj) {
 var server = express.createServer()
 server.use(express.bodyDecoder())
 server.use(resource(main))
-server.listen(4998)
-console.log('Authorization server listening on port 4998')
+server.listen(4999)
+console.log('Authorization server listening on port 4999')
+
+// Run a pure proxy at 5000 - this will forward requests to port to localhost:6000
+var http = require('http'),
+  httpProxy = require('http-proxy')
+
+http.createServer(function (req, res) {
+  // Verify that the Authorization header is present
+  var authorization = req.headers['authorization']
+  if(!authorization) {
+    res.writeHead(401, {'WWW-Authenticate' : 'OAuth2'})
+    res.end('Missing WWW-Authenticate header')
+    return
+  }
+
+  var splits = authorization.split(' ')
+  if('OAuth2' != splits[0]) {
+    res.writeHead(401, {'Content-Type' : 'text/plain'})
+    res.end('Requires OAuth2')
+    return
+  }
+  var accessToken = splits[1]
+  sys.log('accessToken: ' + accessToken)
+
+  // TODO: Validate the accessToken
+
+  var proxy = new httpProxy.HttpProxy(req, res);
+  proxy.proxyRequest(6000, 'localhost', req, res);
+}).listen(5000);
