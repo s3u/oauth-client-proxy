@@ -8,7 +8,8 @@ var connect = require('connect'),
   nstore = require('nstore'),
   cryptUtils = require('../../lib/crypt-utils'),
   uri = require('url'),
-  uriParmAppender = require('../../lib/uri-param-appender')
+  uriParmAppender = require('../../lib/uri-param-appender'),
+  headers = require('headers')
 
 function manageClients(app) {
 
@@ -38,13 +39,20 @@ function manageClients(app) {
       var hmac = cryptUtils.hmacThis(encrypted, 'this is a secret')
       var authorization = 'aes256sha1 ' + encrypted + ':' + hmac
 
+      // Encode the request URI to retry in case of failure
+      var origUriLink = headers.format('Link', {
+        href : 'http://localhost:4000/home/my',
+        rel : ['http://oauth.proxy.org/retry']
+      });
+
       // send the request
       client.request({
         method: 'GET',
         uri: 'http://localhost:5000/resource',
         proxy: 'http://localhost:3030',
         headers: {
-          'Proxy-Authorization' : authorization
+          'Proxy-Authorization' : authorization,
+          'Link' : origUriLink
         },
         clientError: function(clientRes) {
           sys.log("ERROR")
@@ -56,14 +64,6 @@ function manageClients(app) {
 
           // continueTo is where the user will be sent to for authorization - this is the location told by the proxy
           var continueTo = clientRes.headers.location
-
-          // Replace orig_uri in the redirect_uri parameter - since it is param, we need to encode the token
-          // this is the URI that we want to retry after authorization
-          var orig = encodeURIComponent('http://localhost:4000/home/my')
-          continueTo = continueTo.replace(encodeURIComponent('{orig_uri}'), orig)
-
-          // Encode since this value will be used in a link
-          continueTo = encodeURIComponent(continueTo)
 
           // Render the user alert page
           res.render('authorize.ejs', {
