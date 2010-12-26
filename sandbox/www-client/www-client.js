@@ -59,7 +59,7 @@ function manageClients(app) {
 
           // Render the user alert page
           res.render('authorize.ejs', {
-            continueTo : continueTo
+            continueTo : encodeURIComponent(continueTo)
           })
           res.end()
         },

@@ -18,7 +18,7 @@ var authorizedClients = {
 
 // The redirectUri below refers to the oauth proxy and not the client app
 var clients = {
-  '71746698906' :  {"name":"test","email":"test@test.com","secret":7609486090,"password":"asa","redirectUri":"http://localhost:4000/"}
+  '71746698906' :  {"name":"test","email":"test@test.com","secret":7609486090,"password":"asa","redirectUri":"http://localhost:3031/"}
 }
 
 function main(app) {
@@ -60,6 +60,8 @@ function main(app) {
           redirect_uri : req.param('redirect_uri'),
           expiry: new Date().getTime() + 300 // Expire after 5 minutes
         }
+        sys.log('....... ' + req.param('redirect_uri'))
+
         loginState = JSON.stringify(loginState)
 
         // Encrypt the loginState

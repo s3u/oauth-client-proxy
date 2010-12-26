@@ -67,7 +67,7 @@ function loginServer(app) {
       var doMatch = cryptUtils.verifyHmac(returnTo, 'this is my secret', sign)
 
       returnTo = decodeURIComponent(returnTo)
-
+      sys.log('returnTo (after login): ' + returnTo)
       if (returnTo && sign && doMatch) {
         var user = users[userid]
         if (user && password == user.password) {
