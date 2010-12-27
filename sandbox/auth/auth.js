@@ -10,12 +10,6 @@ var connect = require('connect'),
   cryptUtils = require('../../lib/crypt-utils'),
   sys = require('sys')
 
-var authorizedClients = {
-  'user0' : 'password',
-  'user1' : 'password',
-  'user2' : 'password'
-}
-
 // The redirectUri below refers to the oauth proxy and not the client app
 var clients = {
   '71746698906' :  {"name":"test","email":"test@test.com","secret":7609486090,"password":"asa","redirectUri":"http://localhost:3031/"}

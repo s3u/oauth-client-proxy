@@ -1,19 +1,42 @@
 
 
+## Registering Resource Servers
+
+Specify the following in origins-config.js (TODO- change this)
+
+* `pattern`: URI pattern for resources
+* `authorizeUri` : Authorization URI of the authorization server
+* `tokenUri`: URI to obtain access tokens
+* `clientId`: Client ID
+
+The client must register the OAuth proxy (http://localhost:3031/) as the redirect_uri with the
+authorization server.
+
 ## Proxy Authentication
 
-Gather the following data.
+The client using the OAuth Client Proxy must authenticate itself with the proxy and also assert the
+identity of the user. The proxy uses the user's identifier to store/manage OAuth2 credentials on
+behalf of the client app.
 
-* `user`: An identifier to uniquely identify each user. The proxy does not need to know anything
-  about users.
-* `nonce`: A nonce
-* `timestamp`: Current date-time value encoded as per
-  [RFC-3339](http://tools.ietf.org/html/rfc3339#section-5.6)
+The proxy returns response code `401` with a `Proxy-Authenticate` header in case the client does
+not assert user's identity.
 
-Generate a base string by concatenating the above.
+The proxy uses the scheme `oauth2-proxy-assert` for the `Proxy-Authorization` header.
 
-* Sort the above parameters using lexicographical byte value ordering
-* Concatenate the parameters into a single string in their sorted order. For each parameter,
-  separate the name from the corresponding value by an `=` character (`U+003D`) Separate each
-  name-value pair by an ampersand character (`U+0026`) 
-  
+    Proxy-Authorization: oauth2-proxy-assert joe.user
+    
+In this example, `joe.user` is an opaque identifier for the user.
+    
+## Making a Request
+
+- Use http://localhost:4000 as a forward proxy.
+- Include the 'Proxy-Authorization` header.
+- Include a Link header with `rel=http://oauth.proxy.org/retry` and `href` value equal to the client's URI. The proxy will redirect the user to this URI after obtaining an access token. 
+    
+## Alerting the User
+
+During the OAuth flow, the client app may want to alert the user that (s)he is being redirected to
+the authorization server. To enable this, the proxy will return response code 302 to the client with
+a `Location` header referring to the authorization server. After alerting the user, the client must
+redirect the user to the value of this `Location` header. The client must not modify the value of
+this header.
