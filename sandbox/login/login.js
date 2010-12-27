@@ -3,7 +3,7 @@ var connect = require('connect'),
   express = require('express'),
   sys = require('sys'),
   cryptUtils = require('../../lib/crypt-utils'),
-  nstore = require('nstore')
+  uriParamAppender = require('../../lib/uri-param-appender')
 
 var users = {
   'john' : {
@@ -66,7 +66,18 @@ function loginServer(app) {
       // Verify again that the signature matches
       var doMatch = cryptUtils.verifyHmac(returnTo, 'this is my secret', sign)
 
+      var userparam = cryptUtils.encryptThis(userid, 'this is my secret')
+      sys.log('userid: ' + userid)
+      sys.log('userparam: ' + userparam)
+      var usersign = cryptUtils.hmacThis(userparam, 'this is my secret')
+      sys.log('usersign: ' + usersign)
+
+      // Append user id to the returnTo URI
       returnTo = decodeURIComponent(returnTo)
+      returnTo = uriParamAppender.appendParam(returnTo, {
+        'user' : userparam,
+        'sign' : usersign
+      })
       sys.log('returnTo (after login): ' + returnTo)
       if (returnTo && sign && doMatch) {
         var user = users[userid]
