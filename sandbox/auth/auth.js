@@ -100,9 +100,6 @@ function main(app) {
       // Get the user
       var userparam = req.param('user')
       var usersign = req.param('sign')
-      sys.log('userparam: ' + userparam)
-      sys.log('usersign: ' + usersign)
-      sys.log('hash: ' + cryptUtils.hmacThis(userparam, 'this is my secret'))
       if(!cryptUtils.verifyHmac(userparam, 'this is my secret', usersign)) {
         res.writeHead(400)
         res.end('Bad request - possibly tampered')
@@ -110,7 +107,6 @@ function main(app) {
       }
 
       var user = cryptUtils.decryptThis(userparam, 'this is my secret')
-      sys.log('user - ' + user)
 
       // Mint a code - include client_id, scope, timestamp, and user identifier
       var codeObj = {
@@ -122,7 +118,6 @@ function main(app) {
       }
       var baseStr = JSON.stringify(codeObj)
       var code = cryptUtils.encryptThis(baseStr, 'this is my secret')
-      sys.log('code: ' + code)
 
       // Redirect back to the client
       var redirect_uri = decodeURIComponent(loginState.redirect_uri)
@@ -142,15 +137,12 @@ function main(app) {
     post: function(req, res) {
       var clientId = req.param('client_id')
       var clientSecret = req.param('client_secret')
-      sys.log(sys.inspect(clients[clientId]))
-      sys.log(clientSecret)
       if(!clients[clientId] || clients[clientId].secret != clientSecret) {
         res.writeHead(403)
         res.end('Client auth failed. Mismatched secret')
         return
       }
       var grantType = req.param('grant_type')
-      sys.log('grantType: ' + grantType)
       switch (grantType) {
         case 'authorization_code':
           var code = req.param('code')
@@ -161,7 +153,6 @@ function main(app) {
           var refreshToken = req.param('refresh_token')
           var baseStr = cryptUtils.decryptThis(refreshToken, 'this is my secret')
       }
-      sys.log('baseStr: ' + baseStr)
       var codeObj = JSON.parse(baseStr)
       codeObj.clientSecret = req.param('client_secret')
       codeObj.timeStamp = new Date().getTime() // TODO: RFC 3339
@@ -222,11 +213,9 @@ http.createServer(function (req, res) {
     return
   }
   var accessToken = splits[1]
-  sys.log('accessToken: ' + accessToken)
   var tokenObj
   try {
     var str = cryptUtils.decryptThis(accessToken, 'this is the token secret')
-    sys.log(str)
     tokenObj = JSON.parse(str)
   }
   catch(e) {

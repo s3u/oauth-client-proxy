@@ -72,7 +72,6 @@ function manageClients(app) {
           })
           clientRes.on('end', function() {
             data = JSON.parse(data)
-            sys.log('data: ' + sys.inspect(data))
             res.render('home/my.ejs', data)
             res.end()
           })

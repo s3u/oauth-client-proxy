@@ -26,8 +26,6 @@ function loginServer(app) {
       // verify that the signature matches
       var returnTo = req.param('.rt')
       var sign = req.param('.sign')
-      sys.log('returnTo: ' + returnTo)
-      sys.log('sign: ' + sign)
       var doMatch = cryptUtils.verifyHmac(returnTo, 'this is my secret', sign)
 
       if (returnTo && sign && doMatch) {
@@ -67,10 +65,7 @@ function loginServer(app) {
       var doMatch = cryptUtils.verifyHmac(returnTo, 'this is my secret', sign)
 
       var userparam = cryptUtils.encryptThis(userid, 'this is my secret')
-      sys.log('userid: ' + userid)
-      sys.log('userparam: ' + userparam)
       var usersign = cryptUtils.hmacThis(userparam, 'this is my secret')
-      sys.log('usersign: ' + usersign)
 
       // Append user id to the returnTo URI
       returnTo = decodeURIComponent(returnTo)
