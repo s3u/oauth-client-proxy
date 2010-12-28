@@ -4,9 +4,9 @@ var connect = require('connect'),
   uuid = require('uuid'),
   URI = require('uri'),
   config = require('config/config'),
-  uriParamAppender = require('../../lib/uri-param-appender'),
+  uriParamAppender = require('../../js/lib/uri-param-appender'),
   crypto = require('crypto'),
-  cryptUtils = require('../../lib/crypt-utils'),
+  cryptUtils = require('../../js/lib/crypt-utils'),
   sys = require('sys')
 
 // The redirectUri below refers to the oauth proxy and not the client app

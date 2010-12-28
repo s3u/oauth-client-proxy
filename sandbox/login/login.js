@@ -2,8 +2,8 @@ var connect = require('connect'),
   resource = require('resource-router'),
   express = require('express'),
   sys = require('sys'),
-  cryptUtils = require('../../lib/crypt-utils'),
-  uriParamAppender = require('../../lib/uri-param-appender')
+  cryptUtils = require('../../js/lib/crypt-utils'),
+  uriParamAppender = require('../../js/lib/uri-param-appender')
 
 var users = {
   'john' : {

@@ -3,11 +3,10 @@ var sys = require('sys'),
   client = require('client'),
   utils = require('uri-param-appender'),
   cryptUtils = require('crypt-utils'),
-  originsConfig = require('../sandbox/data/origins-config'),
+  originsConfig = require('../../sandbox/data/origins-config'),
   redis = require("redis"),
   uri = require('url'),
   headers = require('headers')
-
 
 var redisClient = redis.createClient()
 redisClient.on('connect', function() {
@@ -34,14 +33,14 @@ var handler = function (req, res) {
 
   var proxyAuthorization = req.headers['proxy-authorization']
   if(!proxyAuthorization) {
-    res.writeHead(401, {'Proxy-Authenticate' : 'Basic realm="' + 'OAuth2 Authorization Server' + '"'})
-    res.end('Missing Proxy-Authenticate header')
+    res.writeHead(401, {'Proxy-Authenticate' : 'proxy-assert realm="' + 'OAuth2 Authorization Server' + '"'})
+    res.end()
   }
 
   var splits = proxyAuthorization.split(' ')
-  if('oauth2-proxy-assert' != splits[0]) {
+  if('proxy-assert' != splits[0]) {
     res.writeHead(401, {'Content-Type' : 'text/plain'})
-    res.end('Requires oauth2-proxy-assert authentication')
+    res.end('Requires proxy-assert authentication')
   }
   var user = splits[1]
 
@@ -217,7 +216,7 @@ function proxyTheRequest(req, res, user) {
       var retryUri;
       for(var i = 0, len = links.length; i < len; i++) {
         var link = headers.parse('Link', links[i])
-        if(link.rel == 'http://oauth.proxy.org/retry') {
+        if(link.rel == 'oauth-proxy-continue') {
           retryUri = link.href
         }
       }

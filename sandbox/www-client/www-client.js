@@ -3,11 +3,11 @@ var connect = require('connect'),
   express = require('express'),
   sys = require('sys'),
   http = require('http'),
-  client = require('../../lib/client'),
+  client = require('../../js/lib/client'),
   querystring = require('querystring'),
-  cryptUtils = require('../../lib/crypt-utils'),
+  cryptUtils = require('../../js/lib/crypt-utils'),
   uri = require('url'),
-  uriParmAppender = require('../../lib/uri-param-appender'),
+  uriParmAppender = require('../../js/lib/uri-param-appender'),
   headers = require('headers')
 
 function manageClients(app) {
@@ -28,11 +28,11 @@ function manageClients(app) {
   app.resource('/home/my', {
     get: function(req, res) {
       // Create a Proxy-Authorization header using the oauth2-proxy-assert scheme
-      var authorization = 'oauth2-proxy-assert ' + req.remoteUser
+      var authorization = 'proxy-assert ' + req.remoteUser
       // Encode the request URI to retry in case of failure
       var origUriLink = headers.format('Link', {
         href : 'http://localhost:4000/home/my',
-        rel : ['http://oauth.proxy.org/retry']
+        rel : ['oauth-proxy-continue']
       });
 
       // send the request
@@ -83,7 +83,7 @@ function manageClients(app) {
   app.resource('/home/facebook', {
     get: function(req, res) {
       // Create a Proxy-Authorization header using the oauth2-proxy-assert scheme
-      var authorization = 'oauth2-proxy-assert ' + req.remoteUser
+      var authorization = 'proxy-assert ' + req.remoteUser
       // Encode the request URI to retry in case of failure
       var origUriLink = headers.format('Link', {
         href : 'http://localhost:4000/home/facebook',
