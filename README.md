@@ -1,3 +1,5 @@
+# Current Status
+
 **Hot code. Will burn your hands if touched.**
 
 # OAuth Forward Proxy
@@ -34,3 +36,21 @@ The `Link` header tells the proxy a URI to use to restart flow in case the proxy
 client request to get explicit user authorization.
 
 That's all. The proxy takes care of implementation details of the OAuth protocol.
+
+# How to Use
+
+    var client = require('oauth-client-proxy');
+    var proxy = client.createProxy({
+      'origins' : [
+        {
+          pattern : /^http\:\/\/localhost\:5000\/resource/,
+          authorizeUri : 'http://localhost:4999/authorize',
+          tokenUri : 'http://localhost:4999/token',
+          clientId : '71746698906',
+          clientSecret: '7609486090'
+        }
+      ]
+    });
+    // Starts the proxy at 3030, and redirect server at 3031
+    // The redirect server should be on port 80 (or proxied) 
+    proxy.listen(3030, 3031);
