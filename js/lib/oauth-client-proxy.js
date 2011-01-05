@@ -9,7 +9,7 @@ var sys = require('sys'),
 
 function OAuthProxy(opts) {
   if(opts['origins']) {
-    this.origins = opts['options'];
+    this.origins = opts['origins'];
   }
   else {
     sys.puts("No origins specified");
@@ -59,7 +59,75 @@ function OAuthProxy(opts) {
     self.proxyAuthFn(req, res);
     proxyTheRequest(self, req, res, req.user)
   });
-  this.redirect = http.createServer(redirectHandler);
+  this.redirect = http.createServer(function(req, res) {
+    var parsed = uri.parse(req.url, true)
+
+    var code = parsed.query['code']
+    var state = parsed.query['state']
+    state = cryptUtils.decryptThis(state, 'client-proxy-secret')
+    state = JSON.parse(state)
+
+    var origin = findOrigin(self, state.resourceUri)
+
+    // Prepare the tokenUri
+    var body = ''
+    body += 'grant_type=authorization_code'
+    body += '&redirect_uri=' + state.redirectUri
+    body += '&client_id=' + origin.clientId
+    body += '&code=' + code
+    body += '&client_secret=' + origin.clientSecret
+
+    // Exchange the code for an access token
+    client.request({
+      method: 'POST',
+      uri: origin.tokenUri,
+      body: body,
+      headers: {
+        'Content-Type' : 'application/x-www-form-urlencoded'
+      },
+      '4xx' : function(clientRes) {
+        sys.log("ERROR")
+        res.writeHead(401, {
+          'Authorization' : clientRes.headers['authorization']
+        })
+        res.end('Unable to get access token - ' + clientRes.headers['authorization'])
+      },
+      '2xx' : function(clientRes) {
+        // access_token, refresh_token, expires_in
+        var data = ''
+        clientRes.on('data', function(chunk) {
+          data += chunk
+        })
+        clientRes.on('end', function() {
+          var obj = JSON.parse(data)
+
+          // TODO: This won't work for multiple origins
+          var creds = {
+            user : state.user,
+            originPattern : origin.pattern,
+            accessToken : obj.access_token,
+            refreshToken : obj.refresh_token,
+            expiresIn : obj.expires_in
+          }
+
+          // Store creds
+          creds = JSON.stringify(creds)
+          var key = 'oauth2:proxy:users:' + origin.pattern + ':' + state.user
+
+          self.redisClient.set(key, creds) // TODO: Callback
+
+          // Redirect back to where we started
+          var dest = parsed.query['retry']
+          sys.log('End of dance - redirecting back to ' + dest)
+          res.writeHead(302, {
+            'Location' : dest
+          })
+          res.end()
+          return
+        })
+      }
+    })
+  });
 }
 
 exports.OAuthProxy = OAuthProxy;
@@ -122,7 +190,7 @@ function proxyTheRequest(self, req, res, user) {
   // Key used to store/lookup OAuth2 credentials
   var key = 'oauth2:proxy:users:' + origin.pattern + ':' + user
 
-  this.redisClient.get(key, function(err, val) {
+  self.redisClient.get(key, function(err, val) {
     if(err) {
       // unable to load user data due to some error
       res.writeHead(500)
@@ -188,7 +256,7 @@ function proxyTheRequest(self, req, res, user) {
                 creds = JSON.stringify(creds)
                 var key = 'oauth2:proxy:users:' + origin.pattern + ':' + user
 
-                this.redisClient.set(key, creds) // TODO: Callback
+                self.redisClient.set(key, creds) // TODO: Callback
 
                 sys.log('Updated creds');
 
@@ -206,7 +274,7 @@ function proxyTheRequest(self, req, res, user) {
                   '401' : function(clientRes) { // Handle 401 for invalid and expired tokens
                     sys.log('Unable to refresh the access token - clearing credentials and retrying')
                     // Clear the token and try again
-                    this.redisClient.del(key, function(err, val) {
+                    self.redisClient.del(key, function(err, val) {
                       proxyTheRequest(req, res, user)
                     })
                   },
@@ -282,78 +350,3 @@ function proxyTheRequest(self, req, res, user) {
   })
 }
 
-
-//
-// Redirect server to complete the OAuth dance
-//
-// This port should be visible via port 80.
-//
-var redirectHandler = function(req, res) {
-  var parsed = uri.parse(req.url, true)
-
-  var code = parsed.query['code']
-  var state = parsed.query['state']
-  state = cryptUtils.decryptThis(state, 'client-proxy-secret')
-  state = JSON.parse(state)
-
-  var origin = findOrigin(state.resourceUri)
-
-  // Prepare the tokenUri
-  var body = ''
-  body += 'grant_type=authorization_code'
-  body += '&redirect_uri=' + state.redirectUri
-  body += '&client_id=' + origin.clientId
-  body += '&code=' + code
-  body += '&client_secret=' + origin.clientSecret
-
-  // Exchange the code for an access token
-  client.request({
-    method: 'POST',
-    uri: origin.tokenUri,
-    body: body,
-    headers: {
-      'Content-Type' : 'application/x-www-form-urlencoded'
-    },
-    '4xx' : function(clientRes) {
-      sys.log("ERROR")
-      res.writeHead(401, {
-        'Authorization' : clientRes.headers['authorization']
-      })
-      res.end('Unable to get access token - ' + clientRes.headers['authorization'])
-    },
-    '2xx' : function(clientRes) {
-      // access_token, refresh_token, expires_in
-      var data = ''
-      clientRes.on('data', function(chunk) {
-        data += chunk
-      })
-      clientRes.on('end', function() {
-        var obj = JSON.parse(data)
-
-        // TODO: This won't work for multiple origins
-        var creds = {
-          user : state.user,
-          originPattern : origin.pattern,
-          accessToken : obj.access_token,
-          refreshToken : obj.refresh_token,
-          expiresIn : obj.expires_in
-        }
-
-        // Store creds
-        creds = JSON.stringify(creds)
-        var key = 'oauth2:proxy:users:' + origin.pattern + ':' + state.user
-
-        this.redisClient.set(key, creds) // TODO: Callback
-
-        // Redirect back to where we started
-        var dest = parsed.query['retry']
-        sys.log('End of dance - redirecting back to ' + dest)
-        res.writeHead(302, {
-          'Location' : dest
-        })
-        res.end()
-        return
-      })
-    }
-  })
-}
