@@ -1,51 +1,78 @@
 var sys = require('sys'),
   http = require('http'),
-  client = require('client'),
-  utils = require('uri-param-appender'),
-  cryptUtils = require('crypt-utils'),
-  originsConfig = require('../../sandbox/data/origins-config'),
+  client = require('active-client'),
+  utils = require('./uri-param-appender'),
+  cryptUtils = require('./crypt-utils'),
   redis = require("redis"),
   uri = require('url'),
   headers = require('headers')
 
-var redisClient = redis.createClient()
-redisClient.on('connect', function() {
-  // client.auth('foobared')
-  sys.puts('Connected to Redis')
-})
-
-//
-// Uses redis to store OAuth credentials
-//
-redisClient.on("error", function (err) {
-  console.puts("Redis error " + err);
-});
-
-//
-// Main proxy server
-//
-var handler = function (req, res) {
-  var host = req.headers['host']
-  if(!host) {
-    res.writeHead(400, {'Content-Type' : 'text/plain'})
-    res.end('Bad request: ' + message)
+function OAuthProxy(opts) {
+  if(opts['origins']) {
+    this.origins = opts['options'];
+  }
+  else {
+    sys.puts("No origins specified");
+    this.origins = [];
   }
 
-  var proxyAuthorization = req.headers['proxy-authorization']
-  if(!proxyAuthorization) {
-    res.writeHead(401, {'Proxy-Authenticate' : 'proxy-assert realm="' + 'OAuth2 Authorization Server' + '"'})
-    res.end()
+  if(opts['proxyAuth']) {
+    this.proxyAuthFn = opts['proxyAuth'];
+  }
+  else {
+    sys.log('using default auth fn');
+    this.proxyAuthFn = function(req, res) {
+      var proxyAuthorization = req.headers['proxy-authorization'];
+      var splits = proxyAuthorization.split(' ');
+      if('proxy-assert' != splits[0]) {
+        res.writeHead(401, {'Content-Type' : 'text/plain'});
+        res.end('Requires proxy-assert authentication');
+      }
+      return splits[1];
+    };
+    sys.log(this.proxyAuthFn);
   }
 
-  var splits = proxyAuthorization.split(' ')
-  if('proxy-assert' != splits[0]) {
-    res.writeHead(401, {'Content-Type' : 'text/plain'})
-    res.end('Requires proxy-assert authentication')
-  }
-  var user = splits[1]
+  this.redisClient = redis.createClient();
+  this.redisClient.on('connect', function() {
+    // client.auth('foobared')
+    sys.puts('Connected to Redis')
+  });
+  this.redisClient.on('error', function() {
+    sys.puts('Unable to connect to Redis');
+  });
 
-  proxyTheRequest(req, res, user)
+  var self = this;
+  this.proxy = http.createServer(function (req, res) {
+    var host = req.headers['host']
+    if(!host) {
+      res.writeHead(400, {'Content-Type' : 'text/plain'})
+      res.end('Bad request: ' + message)
+    }
+
+    var proxyAuthorization = req.headers['proxy-authorization']
+    if(!proxyAuthorization) {
+      res.writeHead(401, {'Proxy-Authenticate' : 'proxy-assert realm="' + 'OAuth2 Authorization Server' + '"'})
+      res.end()
+    }
+
+    self.proxyAuthFn(req, res);
+    proxyTheRequest(self, req, res, req.user)
+  });
+  this.redirect = http.createServer(redirectHandler);
 }
+
+exports.OAuthProxy = OAuthProxy;
+
+exports.createProxy = function(opts) {
+  return new OAuthProxy(opts);
+};
+
+OAuthProxy.prototype.listen = function(proxyPort, redirectPort) {
+  this.proxy.listen(proxyPort);
+  this.redirect.listen(redirectPort);
+}
+
 
 //
 // Use TLS for authentication
@@ -60,24 +87,31 @@ var handler = function (req, res) {
 //    return
 //  }
 //})
-
 // Load keys
 //var privateKey = fs.readFileSync(path + 'privatekey.pem').toString();
 //var certificate = fs.readFileSync(path + 'certificate.pem').toString();
 //var credentials = crypto.createCredentials({key: privateKey, cert: certificate});
-
-var server = http.createServer(handler)
 //server.setSecure(credentials)
-server.listen(3030)
-sys.puts('Proxy running at http://localhost:3030')
 
+//
 // Support code
-function proxyTheRequest(req, res, user) {
+//
+findOrigin = function(self, uri) {
+  for(var i = 0, len = self.origins.length; i < len; i++) {
+    var origin = self.origins[i]
+    if(origin.pattern.test(uri)) {
+      return origin
+    }
+  }
+  return undefined
+}
+
+function proxyTheRequest(self, req, res, user) {
 
   // 'resourceUri' is where the client is sending the request to. We need to lookup the origin
   // config by the target URI
   var resourceUri = 'http://' + req.headers.host + req.url;
-  var origin = originsConfig.findOrigin(resourceUri)
+  var origin = findOrigin(self, resourceUri)
   if(!origin) {
     // Origin not configured - bail out
     res.writeHead(400)
@@ -88,7 +122,7 @@ function proxyTheRequest(req, res, user) {
   // Key used to store/lookup OAuth2 credentials
   var key = 'oauth2:proxy:users:' + origin.pattern + ':' + user
 
-  redisClient.get(key, function(err, val) {
+  this.redisClient.get(key, function(err, val) {
     if(err) {
       // unable to load user data due to some error
       res.writeHead(500)
@@ -125,20 +159,21 @@ function proxyTheRequest(req, res, user) {
             headers: {
               'Content-Type' : 'application/x-www-form-urlencoded'
             },
-            clientError: function(clientRes) {
+            '4xx': function(clientRes) {
               sys.log("ERROR")
               res.writeHead(401, {
                 'Authorization' : clientRes.headers['authorization']
               })
               res.end('Unable to get access token - ' + clientRes.headers['authorization'])
             },
-            success: function(clientRes) {
+            '2xx' : function(clientRes) {
               // access_token, refresh_token, expires_in
               var data = ''
               clientRes.on('data', function(chunk) {
                 data += chunk
               })
               clientRes.on('end', function() {
+                sys.log('got clientRes.ednd');
                 var obj = JSON.parse(data)
 
                 var creds = {
@@ -153,7 +188,9 @@ function proxyTheRequest(req, res, user) {
                 creds = JSON.stringify(creds)
                 var key = 'oauth2:proxy:users:' + origin.pattern + ':' + user
 
-                redisClient.set(key, creds) // TODO: Callback
+                this.redisClient.set(key, creds) // TODO: Callback
+
+                sys.log('Updated creds');
 
                 // Now redo the request to the resource
                 client.request({
@@ -169,7 +206,7 @@ function proxyTheRequest(req, res, user) {
                   '401' : function(clientRes) { // Handle 401 for invalid and expired tokens
                     sys.log('Unable to refresh the access token - clearing credentials and retrying')
                     // Clear the token and try again
-                    redisClient.del(key, function(err, val) {
+                    this.redisClient.del(key, function(err, val) {
                       proxyTheRequest(req, res, user)
                     })
                   },
@@ -245,13 +282,13 @@ function proxyTheRequest(req, res, user) {
   })
 }
 
-function proxyTheRequest0(req, res, accessToken) {
-}
 
 //
 // Redirect server to complete the OAuth dance
 //
-var redirectServer = http.createServer(function(req, res) {
+// This port should be visible via port 80.
+//
+var redirectHandler = function(req, res) {
   var parsed = uri.parse(req.url, true)
 
   var code = parsed.query['code']
@@ -259,7 +296,7 @@ var redirectServer = http.createServer(function(req, res) {
   state = cryptUtils.decryptThis(state, 'client-proxy-secret')
   state = JSON.parse(state)
 
-  var origin = originsConfig.findOrigin(state.resourceUri)
+  var origin = findOrigin(state.resourceUri)
 
   // Prepare the tokenUri
   var body = ''
@@ -277,14 +314,14 @@ var redirectServer = http.createServer(function(req, res) {
     headers: {
       'Content-Type' : 'application/x-www-form-urlencoded'
     },
-    clientError: function(clientRes) {
+    '4xx' : function(clientRes) {
       sys.log("ERROR")
       res.writeHead(401, {
         'Authorization' : clientRes.headers['authorization']
       })
       res.end('Unable to get access token - ' + clientRes.headers['authorization'])
     },
-    success: function(clientRes) {
+    '2xx' : function(clientRes) {
       // access_token, refresh_token, expires_in
       var data = ''
       clientRes.on('data', function(chunk) {
@@ -306,7 +343,7 @@ var redirectServer = http.createServer(function(req, res) {
         creds = JSON.stringify(creds)
         var key = 'oauth2:proxy:users:' + origin.pattern + ':' + state.user
 
-        redisClient.set(key, creds) // TODO: Callback
+        this.redisClient.set(key, creds) // TODO: Callback
 
         // Redirect back to where we started
         var dest = parsed.query['retry']
@@ -319,6 +356,4 @@ var redirectServer = http.createServer(function(req, res) {
       })
     }
   })
-})
-redirectServer.listen(3031)
-sys.puts('Redirect server running at http://localhost:3031')
+}

@@ -1,0 +1,14 @@
+{
+  "name": "oauth-client-proxy",
+  "version": "0.1.0",
+  "directories" : {
+    "lib" : "./lib"
+  },
+  "dependencies" : {
+    "active-client" : "*",
+    "redis" : "*",
+    "headers" : "*"
+  },
+  "author": "Subbu Allamaraju <subbu@subbu.org> (http://www.subbu.org)",
+  "main" : "./lib/oauth-client-proxy"
+}

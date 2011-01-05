@@ -16,13 +16,13 @@ app.resource('/oauth2', {
       uri: 'https://graph.facebook.com/oauth/access_token?client_id=124518964277647' +
         '&client_secret=5b2d54ed7332ce734b598ea515e0bd71' +
         '&redirect_uri=' + callback + '&code=' + code,
-      clientError: function(clientRes) {
+      '4xx' : function(clientRes) {
         res.render('signup/oauth2.ejs');
       },
-      serverError: function(clientRes) {
+      '5xx' : function(clientRes) {
 
       },
-      success: function(clientRes) {
+      '2xx' : function(clientRes) {
         clientRes.setEncoding('utf8');
         sys.log('success called');
         var data = '';
@@ -41,13 +41,13 @@ app.resource('/oauth2', {
           client.request({
             method: 'GET',
             uri: 'https://graph.facebook.com/me?access_token=' + accessToken,
-            clientError: function(clientRes) {
+            '4xx' : function(clientRes) {
 
             },
-            serverError: function(clientRes) {
+            '5xx' : function(clientRes) {
 
             },
-            success: function(clientRes) {
+            '2xx' : function(clientRes) {
               var data = '';
               clientRes.on('data', function(chunk) {
                 data += chunk;

@@ -3,7 +3,7 @@ var connect = require('connect'),
   express = require('express'),
   sys = require('sys'),
   http = require('http'),
-  client = require('../../js/lib/client'),
+  client = require('active-client'),
   querystring = require('querystring'),
   cryptUtils = require('../../js/lib/crypt-utils'),
   uri = require('url'),
@@ -44,7 +44,7 @@ function manageClients(app) {
           'Proxy-Authorization' : authorization,
           'Link' : origUriLink
         },
-        clientError: function(clientRes) {
+        '4xx' : function(clientRes) {
           sys.log("ERROR")
           res.end()
         },
@@ -65,7 +65,7 @@ function manageClients(app) {
           })
           res.end()
         },
-        success: function(clientRes) {
+        '2xx' : function(clientRes) {
           var data = ''
           clientRes.on('data', function(chunk) {
             data += chunk
@@ -99,7 +99,7 @@ function manageClients(app) {
           'Proxy-Authorization' : authorization,
           'Link' : origUriLink
         },
-        clientError: function(clientRes) {
+        '4xx' : function(clientRes) {
           sys.log("ERROR")
           res.end()
         },
@@ -120,7 +120,7 @@ function manageClients(app) {
           })
           res.end()
         },
-        success: function(clientRes) {
+        '2xx' : function(clientRes) {
           var data = ''
           clientRes.on('data', function(chunk) {
             data += chunk
